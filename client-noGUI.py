@@ -46,6 +46,37 @@ def recvMsg():
 
     return msg
 
+# send messages function 
+def sendMsg():
+    
+    while True:
+        
+        message = input()
+        
+        if message.startswith("/file"):
+        
+            _, target_name, file_path = message.split(" ", 2)
+        
+            with open(file_path, 'rb') as f:
+                file_data = f.read()
+        
+            file_name = os.path.basename(file_path)
+            client.send(f"/file {target_name} {file_name}".encode())
+            client.send(str(len(file_data)).encode())
+            client.send(file_data)
+
+        elif message == '/quit':
+
+            client.send(message.encode())
+
+            print('\n[DESCONECTADO]>> você se desconectou do servidor\n')
+            time.sleep(5)
+            exit()
+        
+        else:
+        
+            client.send(message.encode())
+
 #######################################################################################################################################################################################
 #                                                                                                                                                                                     #
 #                                                          ****************** CODE STARTS HERE *******************                                                                    #
@@ -91,11 +122,4 @@ while True:
     process.start()
 
     # all messages now are sent to server
-    msg = input()
-    client.send(msg.encode())
-    
-    if msg == '/quit':
-
-        print('\n[DESCONECTADO]>> você se desconectou do servidor\n')
-        time.sleep(5)
-        exit()
+    sendMsg()
