@@ -41,7 +41,7 @@ def handleClient():
 
                         c = clients[nameClient]['conn']
 
-                        c.send(f'\n{nameClient.capitalize()}>> {privMsg}\n'.encode())
+                        c.send(f'\n{nameClient.upper()}>> {privMsg}\n'.encode())
 
                     else:
 
@@ -132,7 +132,7 @@ def handleClient():
 
                     while len(fileData) < fileSize:
 
-                        fileData += conn.recv(1024)
+                        fileData += conn.recv(2048)
 
                         with open(fileName, 'wb') as f:
 
@@ -150,19 +150,48 @@ def handleClient():
 
                     _, targetName, gc = msg.split(maxsplit=2)
 
-                    for h in clients:
+                    if f'ADM-{nameClient}' in grupos[gc]:
 
-                        if clients[h]['name'] == targetName:
+                        for h in clients:
 
-                            h = clients[h]['conn']
+                            if clients[h]['name'] == targetName:
 
-                            h.send(f'\n[REMOVIDO]>> você foi removido pelo admin do grupo {gc}\n'.encode())
+                                h = clients[h]['conn']
 
-                            for group in grupos:
+                                h.send(f'\n[REMOVIDO]>> você foi removido pelo admin do grupo {gc}\n'.encode())
 
-                                if h in grupos[group]:
+                                for group in grupos:
 
-                                    listMembers.remove(h)
+                                    if h in grupos[group]:
+
+                                        listMembers.remove(h)
+                                        grupos[group] = listMembers
+                    
+                    else:
+
+                        conn.send('\n[ERRO]>> você não é administrador desse grupo\n'.encode())
+
+                elif msg.startswith('/quitGroup'):
+
+                    _, groupNome = msg.split(maxsplit=1)
+
+                    if groupNome in grupos:
+
+                        if nameClient in grupos[groupNome]:
+                            
+                            listMembers.remove(nameClient)
+                            grupos[groupNome] = listMembers
+
+                            conn.send(f'\n[SAIU]>> você saiu do grupo {groupNome}\n'.encode())
+                            broadcastMsg(f'\n[SAIU]>> {nameClient} saiu do grupo {groupNome}\n', nameClient, groupNome)
+
+                        else:
+
+                            conn.send('\n[ERRO]>> você não está nesse grupo\n'.encode())
+
+                    else:
+
+                        conn.send('\n[ERRO]>> esse grupo não existe\n')
 
                 elif msg.startswith('/quit'):
 
@@ -185,9 +214,9 @@ def broadcastMsg(msg, sender, groupName):
 
             c = clients[member]['conn']
 
-            c.send(f'\n<{str(groupName).capitalize()}><{str(sender)}>: {msg}\n'.encode())
+            c.send(f'\n<{str(groupName).upper()}><{str(sender)}>: {msg}\n'.encode())
 
-# actually, i didn't even used this function :/
+# actually, this function i didn't even used :/
 def sendMsg(msg, conn, sender):
 
     try:
@@ -195,7 +224,7 @@ def sendMsg(msg, conn, sender):
         print(f"\n[ENVIANDO]>> enviando mensagens para {conn['addr']}\n")
 
         msgPraEnviar = str(msg).encode()
-        conn['conn'].send(f'\n<{str(sender).capitalize}>: {msgPraEnviar}\n'.encode())
+        conn['conn'].send(f'\n<{str(sender).upper}>: {msgPraEnviar}\n'.encode())
 
     except Exception:
 
