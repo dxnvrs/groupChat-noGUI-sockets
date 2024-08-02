@@ -187,7 +187,7 @@ def broadcastMsg(msg, sender, groupName):
 
             c.send(f'\n<{str(groupName).capitalize()}><{str(sender)}>: {msg}\n'.encode())
 
-# actually, this function i didn't even used :/
+# actually, i didn't even used this function :/
 def sendMsg(msg, conn, sender):
 
     try:
