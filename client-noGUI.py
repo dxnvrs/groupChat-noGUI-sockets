@@ -76,7 +76,8 @@ def sendMsg():
         else:
         
             client.send(message.encode())
-            print(f'\n<YOU>: {message}\n')
+            _, target, msgRecebida = message.split(maxsplit=2)
+            print(f'\n<YOU>: {msgRecebida}\n')
 
 #######################################################################################################################################################################################
 #                                                                                                                                                                                     #
