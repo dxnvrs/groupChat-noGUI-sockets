@@ -41,7 +41,7 @@ def handleClient():
 
                         c = clients[target]['conn']
 
-                        c.send(f'\n{nameClient.upper()}>> {privMsg}\n'.encode())
+                        c.send(f'\n<{str(nameClient).upper}>: {privMsg}\n'.encode())
 
                     else:
 
