@@ -203,8 +203,6 @@ def handleClient():
 
             print(f'\n[ERRO]>> {e}\n')
 
-            exit()
-
 # function that send messages in groups
 def broadcastMsg(msg, sender, groupName):
 
