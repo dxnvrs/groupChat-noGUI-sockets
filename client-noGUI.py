@@ -73,12 +73,16 @@ def sendMsg():
             time.sleep(5)
             exit()
         
-        else:
+        elif message.startswith('/private') or message.startswith('/group'):
         
             client.send(message.encode())
             _, target, msgRecebida = message.split(maxsplit=2)
             print(f'\n<YOU>: {msgRecebida}\n')
 
+        else:
+
+            client.send(message.encode())
+            
 #######################################################################################################################################################################################
 #                                                                                                                                                                                     #
 #                                                          ****************** CODE STARTS HERE *******************                                                                    #
