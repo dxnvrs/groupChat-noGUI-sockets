@@ -39,7 +39,7 @@ def handleClient():
 
                     if target in clients:
 
-                        c = clients[nameClient]['conn']
+                        c = clients[target]['conn']
 
                         c.send(f'\n{nameClient.upper()}>> {privMsg}\n'.encode())
 
@@ -177,7 +177,7 @@ def handleClient():
 
                     if groupNome in grupos:
 
-                        if nameClient in grupos[groupNome]:
+                        if nameClient in grupos[groupNome] or f'ADM-{nameClient}' in grupos[groupNome]:
                             
                             listMembers.remove(nameClient)
                             grupos[groupNome] = listMembers
