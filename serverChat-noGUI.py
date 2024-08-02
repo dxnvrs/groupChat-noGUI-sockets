@@ -1,8 +1,16 @@
+# all the libs used 
 import socket
 from threading import Thread
 import time
 import os
 
+#######################################################################################################################################################################################
+#                                                                                                                                                                                     #
+#                                                          ****************** FUNCTIONS USED *******************                                                                      #
+#                                                                                                                                                                                     #
+#######################################################################################################################################################################################
+
+# main function, handle the others
 def handleClient():
 
     conn, addr = server.accept()
@@ -154,7 +162,7 @@ def handleClient():
 
                                 if h in grupos[group]:
 
-                                    grupos[group].remove(h)
+                                    listMembers.remove(h)
 
                 elif msg.startswith('/quit'):
 
@@ -168,6 +176,7 @@ def handleClient():
 
             exit()
 
+# function that send messages in groups
 def broadcastMsg(msg, sender, groupName):
 
     if groupName in grupos:
@@ -178,6 +187,7 @@ def broadcastMsg(msg, sender, groupName):
 
             c.send(f'\n<{str(groupName).capitalize()}><{str(sender)}>: {msg}\n'.encode())
 
+# actually, this function i didn't even used :/
 def sendMsg(msg, conn, sender):
 
     try:
@@ -191,14 +201,22 @@ def sendMsg(msg, conn, sender):
 
         print('\n[ERRO]>> não foi possível enviar essa mensagem\n')
 
+#######################################################################################################################################################################################
+#                                                                                                                                                                                     #
+#                                                          ****************** CODE STARTS HERE *******************                                                                    #
+#                                                                                                                                                                                     #
+#######################################################################################################################################################################################
+
+# dicts and lists that contains the registered clients (and their other informations), groups and groups' members  
 grupos = {}
 clients = {}
 listMembers = []
 
-
+# the host and port choosed (3030 as port 'cause ports of minor values may being used by the computer) ('127.0.0.1' is the localhost's address) 
 host = '127.0.0.1'
 port = 3030
 
+# instance the server and bind the address to it
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((host, port))
 
@@ -206,17 +224,20 @@ print('[AGUARDANDO CONEXÃO DE CLIENTE]')
 
 try:
 
+    # server starts to listen to connections
     server.listen()
     print('[TENTATIVA DE CONEXÃO]>> aguardando conexão de um cliente')
 
 except Exception:
 
+    # if it fails, the server closes
     print('[ERRO]>> erro ao tentar conectar um cliente')
     time.sleep(5)
     exit()
 
+# start main loop
 while True:
 
+    # threading the main function 'handleClient'
     thread = Thread(target=handleClient)
     thread.start()
-
