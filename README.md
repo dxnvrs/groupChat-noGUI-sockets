@@ -8,4 +8,5 @@ almost the same project as my other repository, but without graphic user interfa
   * /file <targetName> <fileName> : client can send media files in private or group chats;
   * /kick <targetName> <groupName> : client can remove any member from a group (if they're the group admin);
   * /quitGroup <groupName> : client can remove themselves of a groupchat;
-  * /quit : client can quit and close the application.
+  * /quit : client can quit and close the application;
+  * /profile <targetName> : client can view profiles of other clients.
