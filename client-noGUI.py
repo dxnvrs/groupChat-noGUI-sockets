@@ -19,7 +19,7 @@ def recvMsg():
 
             msg = str(client.recv(2048).decode())
 
-            if msg.startswith('/file'):
+            if msg.startswith('[FILE]'):
 
                 fileName = msg.split(' ', 1)[1]
                 fileSize = int(client.recv(2048).decode())
@@ -35,6 +35,12 @@ def recvMsg():
 
                 print(f'\n[FILE]>> arquivo {fileName} recebido\n')
 
+            elif msg == '/shutdown':
+
+                print('[OFF]>> servidor está desligando...')
+                client.close()
+                os._exit(0)
+                
             else:
 
                 print(msg)
@@ -55,13 +61,13 @@ def sendMsg():
         
         if message.startswith("/file"):
         
-            _, target_name, file_path = message.split(" ", 2)
+            _, target_name, file_path = message.split(maxsplit=2)
         
             with open(file_path, 'rb') as f:
                 file_data = f.read()
         
             file_name = os.path.basename(file_path)
-            client.send(f"/file {target_name} {file_name}".encode())
+            #client.send(f"/file {target_name} {file_name}".encode())
             client.send(str(len(file_data)).encode())
             client.send(file_data)
 
@@ -71,7 +77,8 @@ def sendMsg():
 
             print('\n[DESCONECTADO]>> você se desconectou do servidor\n')
             time.sleep(5)
-            exit()
+            client.close()
+            break
         
         elif message.startswith('/private') or message.startswith('/group'):
         
@@ -82,7 +89,7 @@ def sendMsg():
         else:
 
             client.send(message.encode())
-            
+
 #######################################################################################################################################################################################
 #                                                                                                                                                                                     #
 #                                                          ****************** CODE STARTS HERE *******************                                                                    #
