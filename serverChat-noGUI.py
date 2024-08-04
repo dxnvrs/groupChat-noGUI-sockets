@@ -41,7 +41,7 @@ def handleClient():
 
                         c = clients[target]['conn']
 
-                        c.send(f'\n<{str(nameClient).upper}>: {privMsg}\n'.encode())
+                        c.send(f'\n<{nameClient.upper()}>: {privMsg}\n'.encode())
 
                     else:
 
@@ -59,30 +59,33 @@ def handleClient():
                         rsp = conn.recv(2048).decode()
 
                         if rsp == 's':
-
-                            listMembers = []
-
-                            listMembers.append(f'ADM-{nameClient}')
-
+                            
+                            grupos[groupName] = [nameClient]
                             conn.send('\n[MEMBROS]>> digite o nome dos membros a serem adicionados\n'.encode())
                             
                             f = ''
-
+                            
                             while f != '/':
-
+                            
                                 f = conn.recv(2048).decode()
+                            
+                                if f != '/' and f in clients:
+                            
+                                    grupos[groupName].append(clients[f]['name'])
+                            
+                            conn.send('grupo feito'.encode())
+                            
+                            for m in grupos[groupName]:
                                 
-                                if f != '/':
-                                    
-                                    listMembers.append(f)
+                                conn.send(m.encode())
 
-                            grupos[groupName] = listMembers
-        
                         elif rsp == 'n':
 
                             conn.send('\n[OK]>>\n')
 
                     else:
+
+                        j, groupName, groupMsg = msg.split(maxsplit=2)
 
                         msgEnter = f'\n[{groupName}]>> {nameClient} acabou de entrar\n'
 
@@ -90,25 +93,120 @@ def handleClient():
                         
                         n = groupMsg
 
+                        broadcastMsg(n, nameClient, groupName)
+
                         while n != '/leave':
 
-                            if n != '/leave':
+                            n = conn.recv(2048).decode()
 
-                                n = conn.recv(2048).decode()
-                                broadcastMsg(n, nameClient, groupName)
+                            if n.startswith('/group'):
+
+                                _, gc, n = n.split(maxsplit=2)
+                                broadcastMsg(n, nameClient, gc)
                             
+                            elif n.startswith('/private'):
+
+                                _, target, privMsg = n.split(maxsplit=2)
+
+                                if target in clients:
+
+                                    c = clients[target]['conn']
+
+                                    c.send(f'\n<{nameClient.upper()}>: {privMsg}\n'.encode())
+
+                                else:
+
+                                    conn.send('\n[ERRO]>> usuário não encontrado\n'.encode())
+
+                                break
+
+                            elif n.startswith('/file'):
+
+                                _, target, fileName = n.split(maxsplit=2)
+                                fileSize = int(conn.recv(2048).decode())
+                                fileData = b''
+
+                                while len(fileData) < fileSize:
+
+                                    fileData += conn.recv(2048)
+
+                                    with open(fileName, 'wb') as f:
+
+                                        f.write(fileData)
+
+                                    for i in clients:
+
+                                        if clients[i]['name'] == target:
+
+                                            ib = clients[i]['conn']
+
+                                            ib.send(f'\n[FILE] {fileName}\n'.encode())
+                                            ib.send(str(fileSize).encode())
+                                            ib.send(fileData)            
+                            
+                                break
+
+                            elif n.startswith('/kick'):
+
+                                _, targetName, gc = n.split(maxsplit=2)
+
+                                if nameClient in grupos[gc]:
+
+                                    for h in clients:
+
+                                        if clients[h]['name'] == targetName:
+
+                                            hb = clients[h]['conn']
+
+                                            hb.send(f'\n[REMOVIDO]>> você foi removido pelo admin do grupo {gc}\n'.encode())
+
+                                            for group in grupos:
+
+                                                if h in grupos[group]:
+
+                                                    grupos[group].remove(clients[h]['name'])
+                                            
+                                                else:
+
+                                                    conn.send('\n[ERRO]>> você não é administrador desse grupo\n'.encode())
+
+                                break
+
+                            elif n.startswith('/quitGroup'):
+
+                                _, groupNome = n.split(maxsplit=1)
+
+                                if groupNome in grupos:
+
+                                    if nameClient in grupos[groupNome]:
+
+                                        grupos[groupNome].remove(nameClient)
+
+                                        conn.send(f'\n[SAIU]>> você saiu do grupo {groupNome}\n'.encode())
+                                        broadcastMsg(f'\n[SAIU]>> {nameClient} saiu do grupo {groupNome}\n', nameClient, groupNome)
+
+                                    else:
+
+                                        conn.send('\n[ERRO]>> você não está nesse grupo\n'.encode())
+
+                                else:
+
+                                    conn.send('\n[ERRO]>> esse grupo não existe\n')
+
+                                break
+
                             else:
 
                                 leaveMsg = f'\n[DESCONECTADO]>> {nameClient} se desconectou do grupo\n'
                                 broadcastMsg(leaveMsg, nameClient, groupName)
+                                
+                                break
 
                 elif msg.startswith('/create'):
 
-                    _, gcName = msg.split(maxsplit=2)
+                    _, gcName = msg.split()
 
-                    listMembers = []
-
-                    listMembers.append(f'ADM-{nameClient}')
+                    grupos[gcName] = [nameClient]
 
                     conn.send('\n[MEMBROS]>> digite o nome dos membros a serem adicionados\n'.encode())
 
@@ -120,9 +218,13 @@ def handleClient():
 
                         if u != '/':
 
-                            listMembers.append(u)
-                    
-                    grupos[gcName] = listMembers
+                            grupos[gcName].append(clients[u]['name'])
+                        
+                    conn.send('grupo feito'.encode())
+                            
+                    for m in grupos[gcName]:
+                                
+                        conn.send(m.encode())
                 
                 elif msg.startswith('/file'):
 
@@ -140,33 +242,33 @@ def handleClient():
 
                         for i in clients:
 
-                            if clients[i]['conn'] == target:
+                            if clients[i]['name'] == target:
 
-                                i.send(f'\n[FILE] {fileName}\n'.encode())
-                                i.send(str(fileSize).encode())
-                                i.send(fileData)
+                                ib = clients[i]['conn']
+
+                                ib.send(f'\n[FILE] {fileName}\n'.encode())
+                                ib.send(str(fileSize).encode())
+                                ib.send(fileData)
 
                 elif msg.startswith('/kick'):
 
                     _, targetName, gc = msg.split(maxsplit=2)
 
-                    if f'ADM-{nameClient}' in grupos[gc]:
+                    if nameClient in grupos[gc]:
 
                         for h in clients:
 
                             if clients[h]['name'] == targetName:
 
-                                h = clients[h]['conn']
+                                hb = clients[h]['conn']
 
-                                h.send(f'\n[REMOVIDO]>> você foi removido pelo admin do grupo {gc}\n'.encode())
+                                hb.send(f'\n[REMOVIDO]>> você foi removido pelo admin do grupo {gc}\n'.encode())
 
                                 for group in grupos:
 
                                     if h in grupos[group]:
 
-                                        listMembers.remove(h)
-                                        grupos[group] = listMembers
-                    
+                                        grupos[group].remove(clients[h]['name'])
                     else:
 
                         conn.send('\n[ERRO]>> você não é administrador desse grupo\n'.encode())
@@ -177,10 +279,9 @@ def handleClient():
 
                     if groupNome in grupos:
 
-                        if nameClient in grupos[groupNome] or f'ADM-{nameClient}' in grupos[groupNome]:
-                            
-                            listMembers.remove(nameClient)
-                            grupos[groupNome] = listMembers
+                        if nameClient in grupos[groupNome]:
+
+                            grupos[groupNome].remove(nameClient)
 
                             conn.send(f'\n[SAIU]>> você saiu do grupo {groupNome}\n'.encode())
                             broadcastMsg(f'\n[SAIU]>> {nameClient} saiu do grupo {groupNome}\n', nameClient, groupNome)
@@ -193,28 +294,93 @@ def handleClient():
 
                         conn.send('\n[ERRO]>> esse grupo não existe\n')
 
-                elif msg.startswith('/quit'):
-
-                    clients[nameClient] = None
+                elif msg == '/quit':
 
                     print(f'\n[DESCONEXÃO]>> o cliente {nameClient} se desconectou do servidor\n')
+                    break
+                
+                elif msg == '/shutdown':
+
+                    conn.send('/shutdown'.encode())
+                    serverShutdown()
+                    break
+
+                elif msg.startswith('/profile'):
+
+                    _, targetNome = msg.split()
+                    
+                    conn.send(f'\nnome: {clients[targetNome]['name']}'.encode())
+                    conn.send(f'\nemail: {clients[targetNome]['email']}'.encode())
+                    conn.send(f'\nconn: {str(clients[targetNome]['conn'])}'.encode())
+                    conn.send(f'\naddress: {str(clients[targetNome]['addr'])}\n'.encode())
 
         except Exception as e:
 
             print(f'\n[ERRO]>> {e}\n')
 
+    conn.close()
+
+    del clients[nameClient]
+    
+    for group in grupos.values():
+    
+        if conn in group:
+    
+            group.remove(conn)
+    
+    print(f'{nameClient} desconectado.')
+
+def serverShutdown():
+
+    print('\n[SHUTDOWN]>> Servidor está desligando...')
+    
+    for client in clients.values():
+    
+        client['conn'].close()
+    
+    server.close()
+    os._exit(0)
+
 # function that send messages in groups
 def broadcastMsg(msg, sender, groupName):
 
-    if groupName in grupos:
+    if msg.endswith('acabou de entrar\n'):
 
-        for member in grupos[groupName]:
+        if groupName in grupos:
 
-            c = clients[member]['conn']
+            for member in grupos[groupName]:
 
-            c.send(f'\n<{str(groupName).upper()}><{str(sender)}>: {msg}\n'.encode())
+                if member != sender:
 
-# actually, this function i didn't even used :/
+                    c = clients[member]['conn']
+
+                    c.send(msg.encode())
+    
+    elif msg.endswith('desconectou do grupo\n'):
+
+        if groupName in grupos:
+
+            for member in grupos[groupName]:
+
+                if member != sender:
+
+                    c = clients[member]['conn']
+
+                    c.send(msg.encode())
+
+    else:
+        
+        if groupName in grupos:
+
+            for member in grupos[groupName]:
+
+                if member != sender:
+
+                    c = clients[member]['conn']
+
+                    c.send(f'\n<{str(groupName).upper()}><{str(sender)}>: {msg}\n'.encode())
+
+# actually, i didn't even used this function :/
 def sendMsg(msg, conn, sender):
 
     try:
@@ -237,7 +403,6 @@ def sendMsg(msg, conn, sender):
 # dicts and lists that contains the registered clients (and their other informations), groups and groups' members  
 grupos = {}
 clients = {}
-listMembers = []
 
 # the host and port choosed (3030 as port 'cause ports of minor values may being used by the computer) ('127.0.0.1' is the localhost's address) 
 host = '127.0.0.1'
