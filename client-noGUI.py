@@ -16,31 +16,24 @@ def recvMsg():
     while True:
 
         try:
+            
+            msg = client.recv(10000).decode()
 
-            msg = str(client.recv(2048).decode())
+            if msg.startswith('/file'):
 
-            if msg.startswith('[FILE]'):
+                _, target, file_path = msg.split(maxsplit=2)
+            
+                with open(file_path, 'wb') as f:
 
-                fileName = msg.split(' ', 1)[1]
-                fileSize = int(client.recv(2048).decode())
-                fileData = b''
+                    while True:
 
-                while len(fileData) < fileSize:
+                        data = client.recv(10000)
+                        
+                        if not data:
+                            break
+                        
+                        f.write(data)
 
-                    fileData += client.recv(2048)
-
-                with open(fileName, 'wb') as f:
-
-                    f.write(fileData)
-
-                print(f'\n[FILE]>> arquivo {fileName} recebido\n')
-
-            elif msg == '/shutdown':
-
-                print('[OFF]>> servidor está desligando...')
-                client.close()
-                os._exit(0)
-                
             else:
 
                 print(msg)
@@ -50,8 +43,6 @@ def recvMsg():
             print(f'\n[ERRO]>> não foi possível receber mensagem do servidor. {e}\n')
             break
 
-    return msg
-
 # send messages function 
 def sendMsg():
     
@@ -60,16 +51,8 @@ def sendMsg():
         message = input()
         
         if message.startswith("/file"):
-        
-            _, target_name, file_path = message.split(maxsplit=2)
-        
-            with open(file_path, 'rb') as f:
-                file_data = f.read()
-        
-            file_name = os.path.basename(file_path)
-            #client.send(f"/file {target_name} {file_name}".encode())
-            client.send(str(len(file_data)).encode())
-            client.send(file_data)
+
+            client.send(message.encode())
 
         elif message == '/quit':
 
@@ -78,8 +61,14 @@ def sendMsg():
             print('\n[DESCONECTADO]>> você se desconectou do servidor\n')
             time.sleep(5)
             client.close()
+            
             break
-        
+
+        elif message == '/shutdown':
+
+            print('[OFF]>> servidor está desligando...')
+            client.send(message.encode())
+
         elif message.startswith('/private') or message.startswith('/group'):
         
             client.send(message.encode())
@@ -90,45 +79,40 @@ def sendMsg():
 
             client.send(message.encode())
 
-#######################################################################################################################################################################################
-#                                                                                                                                                                                     #
-#                                                          ****************** CODE STARTS HERE *******************                                                                    #
-#                                                                                                                                                                                     #
-#######################################################################################################################################################################################
+def main():
 
-# the host and port choosed (3030 as port 'cause ports of minor values may being used by the computer) ('127.0.0.1' is the localhost's address)
-host = '127.0.0.1'
-port = 3030
+    # the host and port choosed (3030 as port 'cause ports of minor values may being used by the computer) ('127.0.0.1' is the localhost's address)
+    host = '127.0.0.1'
+    port = 3030
 
-# client is intanced
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    global client
 
-try:
+    # client is intanced
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # client tries to connect to server
-    client.connect((host, port))
-    
-    # if it makes it, the user have to write their email and name 
-    emailUser = input('\n[LOGIN]>> digite seu email:\n')
-    print('>> ', emailUser)
-    nameUser = input('\n[LOGIN]>> agora, digite seu nome para continuar:\n')
-    print('>> ', nameUser)
+    try:
 
-    # the information is sent to server
-    client.send(emailUser.encode())
-    client.send(nameUser.encode())
+        # client tries to connect to server
+        client.connect((host, port))
+        
+        # if it makes it, the user have to write their email and name 
+        emailUser = input('\n[LOGIN]>> digite seu email:\n')
+        print('>> ', emailUser)
+        nameUser = input('\n[LOGIN]>> agora, digite seu nome para continuar:\n')
+        print('>> ', nameUser)
 
-    print('\n[CONECTADO]>> o cliente está conectado\n')
+        # the information is sent to server
+        client.send(emailUser.encode())
+        client.send(nameUser.encode())
 
-except Exception:
-    
-    # if it didn't work, client is closed 
-    print('\n[ERRO]>> não foi possível conectar o host, pois o servidor está offline.\n')
-    time.sleep(5)
-    exit()
+        print('\n[CONECTADO]>> o cliente está conectado\n')
 
-# start main loop
-while True:
+    except Exception:
+        
+        # if it didn't work, client is closed 
+        print('\n[ERRO]>> não foi possível conectar o host, pois o servidor está offline.\n')
+        time.sleep(5)
+        exit()
 
     # threading the main function (recvMsg) and starting the process
     process = threading.Thread(target=recvMsg)
@@ -136,3 +120,13 @@ while True:
 
     # all messages now are sent to server
     sendMsg()
+
+#######################################################################################################################################################################################
+#                                                                                                                                                                                     #
+#                                                          ****************** CODE STARTS HERE *******************                                                                    #
+#                                                                                                                                                                                     #
+#######################################################################################################################################################################################
+
+if __name__ == '__main__':
+
+    main()
