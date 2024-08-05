@@ -3,6 +3,7 @@ import socket
 from threading import Thread
 import time
 import os
+import sys
 
 #######################################################################################################################################################################################
 #                                                                                                                                                                                     #
@@ -28,14 +29,14 @@ def handleClient():
     while True:
 
         try:
-
-            msg = str(conn.recv(2048).decode())
+            
+            msg = conn.recv(2048).decode()
 
             if msg:
 
                 if msg.startswith('/private'):
 
-                    _, target, privMsg = msg.split(maxsplit=2)
+                    _, target, privMsg = msg.decode().split(maxsplit=2)
 
                     if target in clients:
 
@@ -97,12 +98,20 @@ def handleClient():
 
                         while n != '/leave':
 
-                            n = conn.recv(2048).decode()
+                            nMsg = conn.recv(2048)
+                            n = nMsg.decode()
 
                             if n.startswith('/group'):
 
                                 _, gc, n = n.split(maxsplit=2)
-                                broadcastMsg(n, nameClient, gc)
+                                
+                                if nameClient in grupos[gc]:
+                                
+                                    broadcastMsg(n, nameClient, gc)
+                                
+                                else:
+
+                                    conn.send('[ERRO]>> você não está no grupo')
                             
                             elif n.startswith('/private'):
 
@@ -123,26 +132,28 @@ def handleClient():
                             elif n.startswith('/file'):
 
                                 _, target, fileName = n.split(maxsplit=2)
-                                fileSize = int(conn.recv(2048).decode())
-                                fileData = b''
 
-                                while len(fileData) < fileSize:
+                                conn.send(n.encode())
+                            
+                                with open(fileName, 'rb') as f:
 
-                                    fileData += conn.recv(2048)
+                                    for data in f.readlines():
 
-                                    with open(fileName, 'wb') as f:
+                                        if target in clients:
 
-                                        f.write(fileData)
+                                            targetConn = clients[target]['conn']
 
-                                    for i in clients:
+                                            targetConn.send(data)
+                                            targetConn.send(f'>> arquivo {fileName} enviado'.encode())
+                                        
+                                        elif target in grupos:
 
-                                        if clients[i]['name'] == target:
+                                            for members in grupos[target]:
 
-                                            ib = clients[i]['conn']
-
-                                            ib.send(f'\n[FILE] {fileName}\n'.encode())
-                                            ib.send(str(fileSize).encode())
-                                            ib.send(fileData)            
+                                                memberConn = clients[members]['conn']
+                                                    
+                                                memberConn.send(data)
+                                                memberConn.send(f'[{grupos[target]}]>> arquivo {fileName} enviado'.encode())            
                             
                                 break
 
@@ -229,26 +240,28 @@ def handleClient():
                 elif msg.startswith('/file'):
 
                     _, target, fileName = msg.split(maxsplit=2)
-                    fileSize = int(conn.recv(2048).decode())
-                    fileData = b''
 
-                    while len(fileData) < fileSize:
+                    conn.send(msg)
+                
+                    with open(fileName, 'rb') as f:
 
-                        fileData += conn.recv(2048)
+                        for data in f.readlines():
 
-                        with open(fileName, 'wb') as f:
+                            if target in clients:
 
-                            f.write(fileData)
+                                targetConn = clients[target]['conn']
 
-                        for i in clients:
+                                targetConn.send(data)
+                                targetConn.send(f'>> arquivo {fileName} enviado'.encode())
+                            
+                            elif target in grupos:
 
-                            if clients[i]['name'] == target:
+                                for members in grupos[target]:
 
-                                ib = clients[i]['conn']
-
-                                ib.send(f'\n[FILE] {fileName}\n'.encode())
-                                ib.send(str(fileSize).encode())
-                                ib.send(fileData)
+                                    memberConn = clients[members]['conn']
+                                        
+                                    memberConn.send(data)
+                                    memberConn.send(f'[{grupos[target]}]>> arquivo {fileName} enviado'.encode())
 
                 elif msg.startswith('/kick'):
 
@@ -297,13 +310,22 @@ def handleClient():
                 elif msg == '/quit':
 
                     print(f'\n[DESCONEXÃO]>> o cliente {nameClient} se desconectou do servidor\n')
-                    break
-                
+
+                    del clients[nameClient]
+                    
+                    for group in grupos.keys():
+                    
+                        if nameClient in group:
+                    
+                            group.remove(nameClient)
+                    
+                    print(f'{nameClient} desconectado.')
+
+                    break                    
+
                 elif msg == '/shutdown':
 
-                    conn.send('/shutdown'.encode())
                     serverShutdown()
-                    break
 
                 elif msg.startswith('/profile'):
 
@@ -318,28 +340,16 @@ def handleClient():
 
             print(f'\n[ERRO]>> {e}\n')
 
-    conn.close()
-
-    del clients[nameClient]
-    
-    for group in grupos.values():
-    
-        if conn in group:
-    
-            group.remove(conn)
-    
-    print(f'{nameClient} desconectado.')
-
 def serverShutdown():
 
     print('\n[SHUTDOWN]>> Servidor está desligando...')
     
-    for client in clients.values():
-    
-        client['conn'].close()
+    for client in clients.keys():
+            
+            clients[client]['conn'].close()
     
     server.close()
-    os._exit(0)
+    sys.exit(1)
 
 # function that send messages in groups
 def broadcastMsg(msg, sender, groupName):
