@@ -1,4 +1,12 @@
 # groupChat-noGUI-sockets
+integrantes do grupo:
+
+Cauê Araújo Euzébio - 211028195
+Levi de Sousa Silva - 200049356
+Maria Tereza Oliveira da Luz Dantas - 211028210
+
+
+
 almost the same project as my other repository, but without graphic user interface
 
 - implemanted functions:
