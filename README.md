@@ -5,9 +5,11 @@ Cauê Araújo Euzébio - 211028195
 Levi de Sousa Silva - 200049356
 Maria Tereza Oliveira da Luz Dantas - 211028210
 
+This repository contains my project for the computer networks class.
 
+It consists in two .py archives (client-noGUI.py and serverChat-noGUI.py).
 
-almost the same project as my other repository, but without graphic user interface
+This project was made using sockets and threads.
 
 - implemanted functions:
   * /private <targetName> <message> : client can send message in a private chat;
